@@ -66,7 +66,7 @@ carga un byte, y no hace extensión de signo: los bits a la izquierda del
 último son simpre 0.
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/lbu_monocycle.eps.eps}
+\includegraphics[width=0.4\textwidth]{imagenes/lbu_monocycle.eps}
 \end{center}
 \caption{Estado final del datapath monociclo} \label{fig:stack}
 \end{figure}
@@ -84,35 +84,25 @@ guardará en el register file la palabra obtenida de memoria o una versión
 modificada que mantiene un sólo byte. El word modificado se calcula 
 incluso si la señal "cortar" es 0.
 
-La modificación del word es ejecutada por cuatro unidades \textit{Shift 
-Left}: cada una deja un byte distinto en la parte más significativa del
-word. Luego, por medio de un multiplexor se elige cuál de los 4 words
-generados mantener, a partir de los últimos dos bits de la dirección de
-memoria que llega a la entrada "Address" de la memoria de datos. Luego, 
-el word emitido por este último multiplexor es modificado por medio de un
-distribuidor y un concatenador para que el byte figure en la dparte más 
-baja.
+La modificación del word es llevada a cabo por medio de un 
+\textit{Distributor} que divide el word en sus 4 bytes. Luego, por medio 
+de un multiplexor se realiza la elección de uno de esos 4 bytes. 
+Finalmente, el byte seleccionado se concatena a 24 ceros, quedando así
+el byte seleccionado en la parte menos significativa del word.
 
-No se cuenta con los elementos para que la implementación sea mejor: lo 
-ideal sería agregar una única unidad de Sift left que haga un 
-desplazamiento que se pueda variar, y de esta manera no serían necesarias 4.
-Además sería bueno disponer de una unidad de shift right en vez de usar 
-el concatenador y el distribuidor para lograr ese efecto.
 
 \subsubsection{Pruebas}
-A continuación se muestra un fragmento de assembler que debe dejar tales registros de tal manera
-%.data
-%prueba: .word 0xAABBCCDD, 0x11223344, 0x22222222, 0x33333333
-%
-%.text
-%
-%mostrar:
-%		la $t5, prueba
-%		lbu $t0, 0($t5)
-%		lbu $t1, 1($t5)
-%		lbu $t2, 2($t5)
-%		lbu $t3, 3($t5)
+A continuación se muestra el código assembler utilizado como prueba. El
+CPU pasa la prueba si en el registro t0 queda el valor 0x000000aa, el 
+registro t2 queda en 0x000000bb, el t3 en 0x000000cc y el t4 en 
+0x000000dd.
 
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/lbu_monocycle_prueba.eps}
+\end{center}
+\caption{Prueba utilizada para verificar el correcto funcionamiento de la modificación} \label{fig:stack}
+\end{figure}
 %\subsubsection{\texttt{Especificaciones}}
 
 %\begin{figure}[!htp]
