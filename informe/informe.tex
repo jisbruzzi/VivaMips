@@ -59,6 +59,9 @@ LOS DATAPATHS SON...
 % \textit{66.20 Organización de Computadoras} ESTO PONE TEXTO EN CURSIVA
 
 \section{Desarrollo}
+
+%------------------------------------------------------------------------------------
+
 \subsection{Modificación del DP monociclo}
 La modificación introducida fue una nueva instrucción denominada "load 
 byte unsigned" (mnemónico lbu), que en vez de cargar un word como lw, 
@@ -136,8 +139,203 @@ registro t2 queda en 0x000000bb, el t3 en 0x000000cc y el t4 en
 %\item[-I] Agrega el directorio especificado a la lista de directorios buscados para los archivos header
 %\end{description}
 
+%-------------------------------------------------------------------------------------
+\subsection{Modificación del DP pipeline: jal}
+
+Se decidió agregar la instrucción jal antes de la bgezal para aprovechar 
+el hardware añadido. Inicialmente se notó que el los branches se 
+resuelven en la etapa MEM: es allí donde se modifica el PC. El guardado
+de la dirección de retorno en el registro ra puede realizarse en la etapa
+WB, ya que jal -tal como hace beq- "flushea" todos los registros 
+interetapa, con lo cual al ejecutarse el WB del jal, la instrucción que
+sigue estará en la etapa IF.
+
+Con el objetivo de hacer la menor cantidad de modificaciones posibles, 
+no se cambia la condición del salto: se siguen comparando dos registros,
+solo que esta vez siempre se comparan los registros zero. Así, 
+\textit{jal offset} equivale a \textit{beq zero, zero, offset} con la 
+única diferencia de que se guarda PC+4 en RA.
+
+Entonces, se agregó una señal "GuardarPC" a la unidad de control, la 
+cual se guarda en los registros interetapa siguientes a ID. Además se
+agregó NewPC (presente en ID/EX) a a los registros EX/MEM y MEM/WB.
+
+Se Agregan también dos multiplexores en la etapa WB controlados por la
+señal "GuardarPC": uno permite fijar la señal WriteAddress en 31 
+(correspondiente a RA) y otro que permite fijar WriteData en NewPC.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/jal_circuito.eps}
+\end{center}
+\caption{Datapath pipeline con jal} \label{fig:stack}
+\end{figure}
+
+\subsubsection{pruebas}
+
+La prueba utilizada se expone a continuación. Si es exitosa, t1 termina
+en 0, t0 termina en 1 y ra en 0c.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/prueba_jal.eps}
+\end{center}
+\caption{Datapath pipeline con jal} \label{fig:stack}
+\end{figure}
+
+%----------------------------------------------------------------------------------
+
+\subsection{Modificación del DP pipeline: bgeal y bgezal}
+
+Una tarea solicitada fue la implementación de una instrucción BGEZAL. 
+En vez de implementar bgezal, se decidió implementar bgeal, y hacer que
+bgezal sea una pseudoinstrucción. La pseudoinstrucción se traduce
+como una única instrucción (se cambia uno de los argumentos por el 
+registro zero), con lo que no hay pérdidas de velocidad y se gana
+versatilidad.
+
+La compuerta AND de la etapa MEM reúne la información proveniente de las
+señales Branch (proveniente de la unidad de control, fijada en la 
+instrucción) y Zero (proveniente de la ALU, es 1 si el resultado de la 
+ALU es 0). La ALU implementa la operación slt, con lo cual, por medio de
+modificaciones de software a partir de la instrucción JAL se puede 
+obtener BGEAL. Se aprovechó que slt deja el bit Zero en 1 si la 
+condición "mayor o igual" se cumple (pero no "menor estricto").
+
+\subsubsection{modificación bgeal}
+Las modificaciones respecto de JAL, así, no se hicieron sobre el 
+archivo que describe el hardware (.cpu) sino sobre el que describe el 
+software (.set). Se tomó la línea de la sección "instructions" que 
+describe beq y sólo se reemplazaron el opcode (por uno nuevo, distinto
+del de JAL) y el nombre mismo de la instrucción.
+
+En la sección "control" se copió la línea que corresponde al beq, pero
+se cambió el valor de RegWrite y GuardarPC a 1 (tal como se había hecho 
+para JAL) y se asignó un nuevo ALUop. El nuevo ALUop se hizo 
+corresponder con la operación slt en la sección "alu" del mismo archivo.
+
+Luego de hacer pruebas se detectó que el registro RA se guardaba 
+siempre, se dé o no el salto, con lo que se hizo necesario almacenar el
+valor de salida del componente AndBranch (que registra si realmente se 
+llevó a cabo el branch) en el registro interetapa MEM/WB, y luego usar 
+una compuerta AND y un multiplexor para filtrar el valor de la señal
+RegWrite.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/bgeal_circuito.eps}
+\end{center}
+\caption{Datapath pipeline con las modificaciones necesarias para bgeal} \label{fig:stack}
+\end{figure}
+
+\subsubsection{modificación bgezal}
+Se agregó la pseudoinstrucción bgezal, que es bgeal pero con su segundo 
+argumento en el registro 0.
+
+\subsubsection{pruebas}
+Se utilizaron tres pruebas, una de las cuales está representada a 
+continuación. Las otras dos son variantes en las que se cambia el -5 por
+un número positivo y por 0. De ser un número positivo o 0, al final de la 
+ejecución RA es 0c y t0 es aaa, de lo contrario, RA es 0 y t0 es bbb.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/prueba_bgeal.eps}
+\end{center}
+\caption{Prueba de bgezal.} \label{fig:stack}
+\end{figure}
+
+\subsubsection{mejoras posibles}
+Una vez implementada bgeal, se podría implementar jal como una 
+pseudoinstrucción y de esta manera se reduciría el número de 
+instrucciones que implementa el datapath.
+
+%----------------------------------------------------------------------------
+
+\subsection{Modificación del DP pipeline: sb}
+La instrucción sb (store byte) almacena el byte más bajo del registro 
+pasado en memoria. El problema más importante que presenta esta 
+instrucción es el hecho de que DrMips maneja la memoria de a words: es
+imposible guardar o cargar un único byte. Así, la instrucción debería 
+cargar un word, superponerle el byte a guardar, y luego guardar ese word
+a memoria.
+Otro problema es que es imposible guardar y cargar datos a memoria en el
+mismo ciclo, con lo que la instrucción debería ocupar la etapa MEM 
+durante dos ciclos. Esto va en contra de la idea central del pipeline, 
+con lo que se hace necesario implementar sb como una pseudoinstrucción
+que tenga al menos dos instrucciones: una de carga y otra de 
+almacenamiento. Las operaciones intermedias en las que se transforma el
+word también son complicadas, ya que requieren la aplicación de varias
+máscaras de bits.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/implementacion_sb.eps}
+\end{center}
+\caption{Implementación de sb como macro} \label{fig:stack}
+\end{figure}
+	
+La idea es remover el enmascarado de la palabra cargada: construir
+una instrucción que cargue la palabra entera, pero que ponga en 0 el 
+byte que luego se va a escribir. La instrucción se llamaría lwob (load
+without byte).
+
+Se hace también necesario implementar sllv y srlv. Disponer de un solo
+registro auxiliar supone un problema muy grave, ya que se hace necesario
+casi duplicar la cantidad de instrucciones necesarias.
+
+Es imposible generar la pseudoinstrucción sin lwob porque todos los
+cómputos de la máscara requerirían al menos un registro auxiliar más.
+
+Una mejora posible a la implementación propuesta es agregar sll, con lo 
+que se reduciría en 4 el número de instrucciones.
+
+\subsubsection{Implementación de sllv y srlv}
+La ALU ya soporta las operaciones slr y sll, con lo que sólo es
+necesario modificar los archivos .set.
+Se agregaron las instrucciones en la sección "instructions", agregando 
+nuevas líneas a partir de las de add. Se les asignaron campos "func" 
+nuevos, y se hizo la relación entre esos campos y las operaciones
+correspondientes en la sección "alu".
+
+\subsubsection{Implementación de lwob}
+Se agregó a la unidad de control la señal lwob, que se almacena en los
+tres registros interetapa siguientes. En la etapa de memoria se agregó
+un circuito combinacional que a partir de los dos bits más bajos del 
+campo "Result", que indica la dirección de donde provienen los datos,
+calcula el word final removiéndole el byte correspondiente. Finalmente,
+mediante un multiplexor al que ingresa la señal lwob se elige si usar el
+word calculado o el usual.
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/implementacion_lwob.eps}
+\end{center}
+\caption{Implementación de lwob en el datapath} \label{fig:stack}
+\end{figure}
+
+\subsubsubsection{Prueba de lwob}
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=0.4\textwidth]{imagenes/prueba_lwob.eps}
+\end{center}
+\caption{Prueba de lwob} \label{fig:stack}
+\end{figure}
+
+La prueba, de ser exitosa, deja t1 en 0x11223300, t2 en 0x11220044, t3
+en 0x11003344, y t4 en 0x00223344. Nótese que en este caso se utilizó un
+endianness distinto del correspondiente al lbu. Se considera esto válido
+porque, al ser distintos datapath, no hay conflictos con el endianness
+de las instrucciones.
+
+\subsubsection{Implementación de sb}
+Se modificó la macro mostrada más arriba y se incluyó la 
+pseudoinstrucción en el archivo .eps correspondiente.
+
+
 \section{Resultados}
-\subsection{Ventajas de implementar lbu}
+\subsection{Ventajas de implementar lbu/bgeal/etc...}
 A continuación se muestra una función assembly que ejecuta el lbu.
 
 

@@ -1,0 +1,12 @@
+
+#define SB(Rs,Imm,Rt) 	\
+	addi at, Rt, Imm	\	//formar dirección final
+	c2is3 at, at		\	//quedan 24,16,8,0
+	
+	sllv Rs, Rs, at		\	//desplazar el byte a guardar
+
+	lwob at, Imm(Rt)	\	//cargar el word ya enmascarado
+	or at, at, Rs		\	//formar el word final
+	sw at, Imm(Rt)		\	//guardar el word final
+	srlv Rs, Rs, at			//deshacer la modificaciom sobre Rs
+

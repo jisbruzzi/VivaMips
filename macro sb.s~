@@ -1,0 +1,52 @@
+
+#define SB(Rs,Imm,Rt,aux) 	\
+	addi at, zero, 3	\
+	addi aux, Rt, Imm	\
+	and at, at, aux		\
+				\		
+	addi aux, zero, 0	\
+	beq aux, at, Cero	\
+				\		
+	addi aux, zero, 1	\
+	beq aux, at, Uno	\
+				\		
+	addi aux, zero, 2	\
+	beq aux, at, Dos	\
+				\		
+	addi aux, zero, 3	\
+	beq aux, at, Tres	\
+				\
+Cero:				\
+	lw aux, Imm(Rt)		\
+	addi at, zero, 0xFF	\
+	sll at, at, 24		\
+	nor at, zero, at	\
+	and aux, aux, at	\
+	sll Rs,Rs,24		\
+	add Rs, at, Rs		\
+	j Fin			\
+Uno:				\
+	lw aux, Imm(Rt)		\
+	addi at, zero, 0xFF	\
+	sll at, at, 16		\
+	nor at, zero, at	\
+	and aux, aux, at	\
+	sll Rs,Rs,16		\
+	add Rs, at, Rs		\
+	j Fin			\
+Dos:				\
+	lw aux, Imm(Rt)		\
+	addi at, zero, 0xFF	\
+	sll at, at, 8		\
+	nor at, zero, at	\
+	and aux, aux, at	\
+	sll Rs,Rs,8		\
+	add Rs, at, Rs		\
+	j Fin			\
+Tres:				\
+	lw aux, Imm(Rt)		\
+	addi at, zero, 0xFF	\
+	nor at, zero, at	\
+	and aux, aux, at	\
+	add Rs, at, Rs		\
+Fin:nop

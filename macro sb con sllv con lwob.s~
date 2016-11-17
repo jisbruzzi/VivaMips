@@ -1,0 +1,27 @@
+
+#define SB(Rs,Imm,Rt,aux) 	\
+	addi at, zero, 3	\	//máscara del desplazamiento (en bytes)
+	addi Rt, Rt, Imm	\	//formar dirección final
+	and at, at, Rt		\	//en at están los últimos 2 bits, valores 0,1,2,3
+	add at, at, at		\	//multiplicación por 2, at tiene 0,2,4,6
+	add at, at, at		\	//multiplicación por 2, at tiene 0,4,8,12
+	add at, at, at		\	//multiplicación por 2, at tiene 0,8,16,24
+	sllv Rs, Rs, at		\	//desplazar el byte a guardar
+	addi at,Imm		\	//cargo inmediato al registro para hacer la resta
+	sub Rs,Rs,at		\	//resta del inmediato, Rs vuelve al estado anterior
+
+	lwob at, Imm(Rt)	\	//carga s/mascara
+	or at, at, Rs		\	//formar el word final
+	sw at, Imm(Rt)		\	//guardado del word
+	
+	//deshacer las modificaciones sobre Rs
+
+	addi at, zero, 3	\	//máscara del desplazamiento (en bytes)
+	addi Rt, Rt, Imm	\	//formar dirección final
+	and at, at, Rt		\	//en at están los últimos 2 bits, valores 0,1,2,3
+	add at, at, at		\	//multiplicación por 2, at tiene 0,2,4,6
+	add at, at, at		\	//multiplicación por 2, at tiene 0,4,8,12
+	add at, at, at		\	//multiplicación por 2, at tiene 0,8,16,24
+	srlv Rs, Rs, at		\	//deshacer el desplazamiento
+	addi at,Imm		\	//cargo inmediato al registro para hacer la resta
+	sub Rs,Rs,at		\	//resta del inmediato, Rs vuelve al estado anterior
