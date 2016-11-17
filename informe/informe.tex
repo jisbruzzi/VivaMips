@@ -54,8 +54,12 @@ y el aprendizaje del funcionamiento del datapath.
 \end{abstract}
 
 \section{Introducción}
-MIPS ES....
-LOS DATAPATHS SON...
+El objetivo del presente trabajo es introducir una serie de 
+modificaciones a datapaths que vienen con el software DrMips. De esta 
+forma, nos familiarizamos con los conceptos fundamentales de la
+Organización de Computadoras.
+%MIPS ES....
+%LOS DATAPATHS SON...
 % \textit{66.20 Organización de Computadoras} ESTO PONE TEXTO EN CURSIVA
 
 \section{Desarrollo}
@@ -69,7 +73,7 @@ carga un byte, y no hace extensión de signo: los bits a la izquierda del
 último son simpre 0.
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/lbu_monocycle.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/lbu_monocycle.eps}
 \end{center}
 \caption{Estado final del datapath monociclo} \label{fig:stack}
 \end{figure}
@@ -102,7 +106,7 @@ registro t2 queda en 0x000000bb, el t3 en 0x000000cc y el t4 en
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/lbu_monocycle_prueba.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/lbu_monocycle_prueba.eps}
 \end{center}
 \caption{Prueba utilizada para verificar el correcto funcionamiento de la modificación} \label{fig:stack}
 \end{figure}
@@ -166,7 +170,7 @@ señal "GuardarPC": uno permite fijar la señal WriteAddress en 31
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/jal_circuito.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/jal_circuito.eps}
 \end{center}
 \caption{Datapath pipeline con jal} \label{fig:stack}
 \end{figure}
@@ -178,7 +182,7 @@ en 0, t0 termina en 1 y ra en 0c.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/prueba_jal.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/prueba_jal.eps}
 \end{center}
 \caption{Datapath pipeline con jal} \label{fig:stack}
 \end{figure}
@@ -223,7 +227,7 @@ RegWrite.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/bgeal_circuito.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/bgeal_circuito.eps}
 \end{center}
 \caption{Datapath pipeline con las modificaciones necesarias para bgeal} \label{fig:stack}
 \end{figure}
@@ -240,7 +244,7 @@ ejecución RA es 0c y t0 es aaa, de lo contrario, RA es 0 y t0 es bbb.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/prueba_bgeal.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/prueba_bgeal.eps}
 \end{center}
 \caption{Prueba de bgezal.} \label{fig:stack}
 \end{figure}
@@ -270,7 +274,7 @@ máscaras de bits.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/implementacion_sb.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/implementacion_sb.eps}
 \end{center}
 \caption{Implementación de sb como macro} \label{fig:stack}
 \end{figure}
@@ -309,7 +313,7 @@ word calculado o el usual.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/implementacion_lwob.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/implementacion_lwob.eps}
 \end{center}
 \caption{Implementación de lwob en el datapath} \label{fig:stack}
 \end{figure}
@@ -318,7 +322,7 @@ word calculado o el usual.
 
 \begin{figure}[!htp]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{imagenes/prueba_lwob.eps}
+\includegraphics[width=15cm\textwidth]{imagenes/prueba_lwob.eps}
 \end{center}
 \caption{Prueba de lwob} \label{fig:stack}
 \end{figure}
@@ -331,58 +335,50 @@ de las instrucciones.
 
 \subsubsection{Implementación de sb}
 Se modificó la macro mostrada más arriba y se incluyó la 
-pseudoinstrucción en el archivo .eps correspondiente.
+pseudoinstrucción en el archivo .set correspondiente. Como el DrMips no
+está preparado para pseudoinstrucciones de la forma 
+\textit{sb rs, Imm(rt)}, se tuve que usar la forma 
+\textit{sb rs, rt, Imm}.
 
+\subsubsection{Prueba de sb}
+
+\begin{figure}[!htp]
+\begin{center}
+\includegraphics[width=15cm\textwidth]{imagenes/prueba_sb.eps}
+\end{center}
+\caption{Prueba de sb} \label{fig:stack}
+\end{figure}
+
+El resultado de la prueba es:
+t1 debe terminar en 0x88
+t2 en 55223344
+t3 en 55663344
+t4 en 55667744
+t5 en 55667788.
+
+Se probó cada caso por separado para encontrar todos los errores de la
+pseudoinstrucción. Una limitación que se encontró es que la
+pseudoinstrucción no funciona si se le pasa el registro zero como uno de
+sus argumentos, ya que es necesario escribir sobre él.
 
 \section{Resultados}
-\subsection{Ventajas de implementar lbu/bgeal/etc...}
-A continuación se muestra una función assembly que ejecuta el lbu.
-
-
-Puede concluirse que ejecutar una operación equivalente al lbu descripto
-lleva como 1000000 instrucciones o ciclos más pq es monocycle
-%
-%\begin{table}[h!t]
-%\centering
-%\begin{tabular}{| l | r | m | n |}
-%  \hline
-%  Archivo	& Pasos &	Tiempo de ejecución(C)	& Tiempo de ejecución (MIPS)\\ \hline
-%  Glider	& 10	&\(0.022s\) 	&\(2.248s\) \\
-%  Glider	& 100	&\(0.124s\) 	&\(14.769s\) \\
-%  Glider	& 1000	&\(1.620s\) 	&\(157.485s\) \\
-%
-%  \hline
-%
-%\end{tabular}
-%
-%\begin{tabular}{| l | r | m | n |}
-%  \hline
-%  Archivo	& Pasos &	Tiempo de ejecución(C)	& Tiempo de ejecución (MIPS)\\ \hline
-%  Pento	& 10	&\(0.013s\) 	&\(1.43s\) \\
-%  Pento	& 100	&\(0.089s\) 	&\(14.983s\) \\
-%  Pento	& 1000	&\(1.629s\) 	&\(163.15s\) \\
-%
-%  \hline
-%
-%\end{tabular}
-
-%\begin{tabular}{| l | r | m | n |}
-%  \hline
-%  Archivo	& Pasos &	Tiempo de ejecución(C)	& Tiempo de ejecución (MIPS)\\ \hline
-%  Sapo	& 10	&\(0.052s\) 	&\(1.092s\) \\
-%  Sapo	& 100	&\(0.253s\) 	&\(18.252s\) \\
-%  Sapo	& 1000	&\(1.904s\) 	&\(172.32s\) \\
-%
-%  \hline
-%\end{tabular}
-
-
-%\caption{Tiempos medidos}
-%\label{tab:resultados}
-%\end{table}
+Además de las modificaciones y los resultados de las pruebas, ambos ya
+expuestos, en todos los casos puede notarse que implementar la 
+instrucción en el datapath disminuye muchísimo la cantidad de
+instrucciones en contraste con la opción de crear una pseudoinstrucción.
 
 \section{Conclusiones}
+Al manejar el datapath y modificarlo, se conoció en detalle su 
+funcionamiento, y se produjo una familiarización con el mismo que no
+hubiera sido posible de haberse estudiado únicamente como algo teórico.
 
+Una dificultad muy grande que se tuve en el desarrollo del trabajo fue
+el hecho de que el software no tiene una interfaz gráfica para modificar
+los circuitos. Esto incluso influenció en cierta medida algunas 
+decisiones de diseño.
+
+Resulta compulsorio el desarrollo de una herramienta que permita editar
+los archivos .cpu más facilmente.
 
 
 % Citas bibliográficas.
